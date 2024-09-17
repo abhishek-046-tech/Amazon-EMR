@@ -1,0 +1,112 @@
+########################################
+                AWS EMR
+########################################
+
+
+----*** Spark on EMR ***----
+
+
+>> Launch EMR Cluster with spark included and connect to Primary
+EMR 6.12 Spark 3.4.0 Hadoop 3.3.3
+
+# Check ML job to run and things ready
+
+$ cp /usr/lib/spark/examples/src/main/python/ml/als_example.py ~
+
+$ nano als_example.py
+
+# Upload input data to hdfs
+
+$ hdfs dfs -mkdir -p /user/hadoop/data/mllib/als
+
+$ hdfs dfs -copyFromLocal /usr/lib/spark/data/mllib/als/sample_movielens_ratings.txt /user/hadoop/data/mllib/als/
+
+
+# Submit the Spark ML Job 
+
+$ spark-submit als_example.py
+
+
+## Suppress info logs to see better output
+
+$ nano als_example.py
+
+(Above -- # $example on$) 
+
+spark.sparkContext.setLogLevel("ERROR")
+
+
+
+----*** Hive on EMR ***----
+
+
+## Generate the dataset
+
+> Launch an EC2 instance with proper IAM role
+
+$ sudo apt update
+
+$ sudo apt-get install git make gcc
+
+$ git clone https://github.com/gregrahn/tpch-kit.git
+
+$ cd tpch-kit/dbgen
+
+$ make OS=LINUX
+
+$ cd
+
+$ mkdir emrdata
+
+$ export DSS_PATH=$HOME/emrdata
+
+$ cd tpch-kit/dbgen
+
+$ ./dbgen -v -T o -s 10 
+
+$ cd 
+
+$ cd emrdata
+
+
+## Send dataset to s3
+
+$ sudo apt install awscli -y
+
+$ aws s3 ls
+
+$ aws s3 cp . s3://<bucket_name>/ --recursive
+
+
+## Now add step in EMR
+
+>> Select Hive Program
+
+Hive script location - s3://<bucket_name>/hive.q
+
+Input Amazon S3 location - s3://<bucket_name>/
+
+Output Amazon S3 location - s3://<bucket_name>/output/
+
+
+
+---** Run a MapReduce job **---
+
+>> Select Streaming Program
+
+# In the mapper field enter
+
+s3://elasticmapreduce/samples/wordcount/wordSplitter.py
+
+# In the reducer field enter
+
+aggregate
+
+# in the input field enter
+
+s3://elasticmapreduce/samples/wordcount/input
+
+# In the output field enter
+
+s3://<bucket-name>/<output-folder>/
+
